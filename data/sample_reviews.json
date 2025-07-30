@@ -1,0 +1,57 @@
+{
+  "authentic_reviews": [
+    {
+      "text": "I bought this phone after researching for weeks. The camera quality is decent for the price range, though low-light performance could be better. Battery lasts about a day with moderate usage. The build quality feels solid, but I wish it had wireless charging. Overall satisfied with the purchase.",
+      "rating": 4,
+      "reviewer_id": "user_123",
+      "reviewer_total_reviews": 12,
+      "reviewer_account_age_days": 450
+    },
+    {
+      "text": "Good coffee maker but took some time to figure out the settings. Makes decent coffee once you get the hang of it. The carafe could be better designed - it drips a bit when pouring. Customer service was helpful when I had questions.",
+      "rating": 3,
+      "reviewer_id": "user_456",
+      "reviewer_total_reviews": 8,
+      "reviewer_account_age_days": 320
+    }
+  ],
+  "fake_reviews": [
+    {
+      "text": "AMAZING AMAZING AMAZING!!! This is the BEST product EVER!!! Five stars! Highly recommend! Must buy! Perfect quality! Fast shipping! Love it so much!!!",
+      "rating": 5,
+      "reviewer_id": "user_999",
+      "reviewer_total_reviews": 1,
+      "reviewer_account_age_days": 5
+    },
+    {
+      "text": "Great product! Excellent quality! Fast delivery! Five stars! Perfect! Amazing! Outstanding! Incredible! Must buy! Highly recommend! Best purchase ever!",
+      "rating": 5,
+      "reviewer_id": "user_888",
+      "reviewer_total_reviews": 2,
+      "reviewer_account_age_days": 10
+    },
+    {
+      "text": "Perfect.",
+      "rating": 5,
+      "reviewer_id": "user_777",
+      "reviewer_total_reviews": 1,
+      "reviewer_account_age_days": 3
+    }
+  ],
+  "suspicious_reviews": [
+    {
+      "text": "This product is absolutely terrible! Worst purchase of my life! Complete waste of money! Don't buy this garbage!",
+      "rating": 1,
+      "reviewer_id": "user_555",
+      "reviewer_total_reviews": 50,
+      "reviewer_account_age_days": 30
+    },
+    {
+      "text": "The product arrived quickly and works as expected. No complaints here.",
+      "rating": 1,
+      "reviewer_id": "user_333",
+      "reviewer_total_reviews": 3,
+      "reviewer_account_age_days": 15
+    }
+  ]
+}
