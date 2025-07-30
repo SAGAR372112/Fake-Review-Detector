@@ -73,6 +73,11 @@ async def internal_error_handler(request: Request, exc):
         status_code=500,
         content={"message": "Internal server error", "detail": str(exc)}
     )
+    
+@app.on_event("startup")
+async def startup_event():
+    from app.services.features import ensure_nltk_data
+    ensure_nltk_data()
 
 if __name__ == "__main__":
     uvicorn.run(

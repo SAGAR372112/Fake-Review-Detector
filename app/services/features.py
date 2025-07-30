@@ -1,29 +1,53 @@
 import re
-import nltk # type: ignore
+import nltk
 from typing import Dict, List
 from datetime import datetime, timedelta
 import numpy as np
 
-# Download required NLTK data (run once)
-try:
-    nltk.data.find('tokenizers/punkt')
-    nltk.data.find('corpora/stopwords')
-    nltk.data.find('vader_lexicon')
-except LookupError:
-    nltk.download('punkt', quiet=True)
-    nltk.download('stopwords', quiet=True)
-    nltk.download('vader_lexicon', quiet=True)
+# Download required NLTK data with better error handling
+def ensure_nltk_data():
+    """Ensure NLTK data is available"""
+    required_data = [
+        ('tokenizers/punkt', 'punkt'),
+        ('corpora/stopwords', 'stopwords'),
+        ('vader_lexicon', 'vader_lexicon')
+    ]
+    
+    for data_path, download_name in required_data:
+        try:
+            nltk.data.find(data_path)
+        except LookupError:
+            try:
+                print(f"Downloading NLTK data: {download_name}")
+                nltk.download(download_name, quiet=True)
+            except Exception as e:
+                print(f"Warning: Could not download {download_name}: {e}")
 
-from nltk.sentiment import SentimentIntensityAnalyzer # type: ignore
-from nltk.corpus import stopwords # type: ignore
-from nltk.tokenize import word_tokenize, sent_tokenize # type: ignore
+# Import with fallback handling
+try:
+    from nltk.sentiment import SentimentIntensityAnalyzer
+    from nltk.corpus import stopwords
+    from nltk.tokenize import word_tokenize, sent_tokenize
+    NLTK_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: NLTK features limited due to import error: {e}")
+    NLTK_AVAILABLE = False
 
 class FeatureExtractor:
     """Extract features from reviews for fake detection"""
     
     def __init__(self):
-        self.sia = SentimentIntensityAnalyzer()
-        self.stop_words = set(stopwords.words('english'))
+        if NLTK_AVAILABLE:
+            try:
+                self.sia = SentimentIntensityAnalyzer()
+                self.stop_words = set(stopwords.words('english'))
+            except Exception as e:
+                print(f"Warning: NLTK initialization failed: {e}")
+                self.sia = None
+                self.stop_words = set()
+        else:
+            self.sia = None
+            self.stop_words = set()
         
         # Common fake review patterns
         self.fake_patterns = [
@@ -63,8 +87,18 @@ class FeatureExtractor:
     
     def _extract_text_features(self, text: str) -> Dict:
         """Extract text-based features"""
-        words = word_tokenize(text.lower())
-        sentences = sent_tokenize(text)
+        # Basic tokenization fallback if NLTK not available
+        if NLTK_AVAILABLE:
+            try:
+                words = word_tokenize(text.lower())
+                sentences = sent_tokenize(text)
+            except Exception:
+                # Fallback to simple tokenization
+                words = text.lower().split()
+                sentences = text.split('.')
+        else:
+            words = text.lower().split()
+            sentences = text.split('.')
         
         return {
             'text_length': len(text),
@@ -77,12 +111,19 @@ class FeatureExtractor:
             'question_count': text.count('?'),
             'repeated_chars': len(re.findall(r'(.)\1{2,}', text)),  # aaaamazing
             'repeated_words': self._count_repeated_words(text),
-            'stopword_ratio': sum(1 for word in words if word in self.stop_words) / len(words) if words else 0
+            'stopword_ratio': sum(1 for word in words if word in self.stop_words) / len(words) if words and self.stop_words else 0
         }
     
     def _extract_sentiment_features(self, text: str) -> Dict:
         """Extract sentiment-based features"""
-        sentiment_scores = self.sia.polarity_scores(text)
+        if self.sia:
+            try:
+                sentiment_scores = self.sia.polarity_scores(text)
+            except Exception:
+                # Fallback sentiment analysis
+                sentiment_scores = self._simple_sentiment(text)
+        else:
+            sentiment_scores = self._simple_sentiment(text)
         
         # Check for extreme sentiment (often fake)
         is_extreme_positive = sentiment_scores['compound'] > 0.8
@@ -136,12 +177,45 @@ class FeatureExtractor:
     
     def _count_repeated_words(self, text: str) -> int:
         """Count repeated words in text"""
-        words = word_tokenize(text.lower())
+        if NLTK_AVAILABLE:
+            try:
+                words = word_tokenize(text.lower())
+            except Exception:
+                words = text.lower().split()
+        else:
+            words = text.lower().split()
+            
         word_counts = {}
         for word in words:
             word_counts[word] = word_counts.get(word, 0) + 1
         
         return sum(1 for count in word_counts.values() if count > 1)
+    
+    def _simple_sentiment(self, text: str) -> Dict:
+        """Simple sentiment analysis fallback"""
+        text_lower = text.lower()
+        
+        # Simple positive/negative word counting
+        positive_words = ['good', 'great', 'excellent', 'amazing', 'wonderful', 'fantastic', 'perfect', 'love', 'best', 'awesome']
+        negative_words = ['bad', 'terrible', 'awful', 'horrible', 'worst', 'hate', 'disappointing', 'poor', 'useless']
+        
+        pos_count = sum(1 for word in positive_words if word in text_lower)
+        neg_count = sum(1 for word in negative_words if word in text_lower)
+        
+        total = pos_count + neg_count
+        if total == 0:
+            return {'compound': 0.0, 'pos': 0.0, 'neg': 0.0, 'neu': 1.0}
+        
+        pos_ratio = pos_count / len(text_lower.split())
+        neg_ratio = neg_count / len(text_lower.split())
+        compound = (pos_count - neg_count) / max(total, 1)
+        
+        return {
+            'compound': max(-1.0, min(1.0, compound)),
+            'pos': min(1.0, pos_ratio * 3),  # Scale up for visibility
+            'neg': min(1.0, neg_ratio * 3),
+            'neu': max(0.0, 1.0 - pos_ratio * 3 - neg_ratio * 3)
+        }
     
     def check_fake_patterns(self, text: str) -> List[str]:
         """Check for common fake review patterns"""

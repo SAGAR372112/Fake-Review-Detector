@@ -2,7 +2,7 @@ import requests
 import json
 
 # API base URL
-BASE_URL = "http://localhost:8000/api/v1"
+BASE_URL = "http://localhost:8001/api/v1"
 
 def test_single_review():
     """Test single review analysis"""
